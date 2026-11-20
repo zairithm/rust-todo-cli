@@ -78,6 +78,39 @@ fn unknown_id_fails() {
 }
 
 #[test]
+fn filters_by_status() {
+    let f = Fixture::new();
+    f.todo(&["add", "first"]).success();
+    f.todo(&["add", "second"]).success();
+    f.todo(&["done", "1"]).success();
+
+    f.todo(&["list", "--pending"])
+        .success()
+        .stdout(predicate::str::contains("second").and(predicate::str::contains("first").not()));
+    f.todo(&["list", "--done"])
+        .success()
+        .stdout(predicate::str::contains("first").and(predicate::str::contains("second").not()));
+    f.todo(&["list"])
+        .success()
+        .stdout(predicate::str::contains("1 of 2 done"));
+}
+
+#[test]
+fn pending_and_done_together_is_an_error() {
+    let f = Fixture::new();
+    f.todo(&["list", "--pending", "--done"]).failure();
+}
+
+#[test]
+fn no_colour_when_not_a_terminal() {
+    let f = Fixture::new();
+    f.todo(&["add", "plain"]).success();
+    f.todo(&["list"])
+        .success()
+        .stdout(predicate::str::contains("\u{1b}[").not());
+}
+
+#[test]
 fn corrupt_file_is_reported() {
     let f = Fixture::new();
     std::fs::write(&f.file, "not json").unwrap();

@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use anyhow::bail;
 use clap::{Parser, Subcommand};
+use owo_colors::{OwoColorize, Stream};
 
 mod store;
 mod task;
@@ -24,8 +25,15 @@ struct Cli {
 enum Command {
     /// Add a new task.
     Add { title: String },
-    /// List all tasks.
-    List,
+    /// List tasks.
+    List {
+        /// Show only tasks that are not done yet.
+        #[arg(long, conflicts_with = "done")]
+        pending: bool,
+        /// Show only tasks that are done.
+        #[arg(long)]
+        done: bool,
+    },
     /// Mark a task as done.
     Done { id: u32 },
     /// Remove a task.
@@ -43,13 +51,24 @@ fn main() -> anyhow::Result<()> {
             store::save(&cli.file, &tasks)?;
             println!("Added task {id}");
         }
-        Command::List => {
+        Command::List { pending, done } => {
             if tasks.is_empty() {
                 println!("No tasks yet. Add one with: todo add \"Buy milk\"");
+                return Ok(());
             }
-            for t in &tasks {
-                println!("{t}");
+            let shown = tasks
+                .iter()
+                .filter(|t| (!pending || !t.done) && (!done || t.done));
+            for t in shown {
+                // Colours only when printing to a terminal that supports them (and not with NO_COLOR).
+                if t.done {
+                    println!("{}", t.if_supports_color(Stream::Stdout, |t| t.dimmed()));
+                } else {
+                    println!("{}", t.if_supports_color(Stream::Stdout, |t| t.bold()));
+                }
             }
+            let finished = tasks.iter().filter(|t| t.done).count();
+            println!("{finished} of {} done", tasks.len());
         }
         Command::Done { id } => {
             if !task::mark_done(&mut tasks, id) {
