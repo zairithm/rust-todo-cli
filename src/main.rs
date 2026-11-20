@@ -58,9 +58,12 @@ fn main() -> anyhow::Result<()> {
             store::save(&cli.file, &tasks)?;
             println!("Marked task {id} as done");
         }
-        // TODO(#2): implement this command.
-        Command::Remove { .. } => {
-            bail!("not implemented yet, see the open issues")
+        Command::Remove { id } => {
+            let Some(removed) = task::remove(&mut tasks, id) else {
+                bail!("no task with id {id}");
+            };
+            store::save(&cli.file, &tasks)?;
+            println!("Removed task {id}: {}", removed.title);
         }
     }
     Ok(())
