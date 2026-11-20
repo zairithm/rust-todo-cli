@@ -31,6 +31,17 @@ pub fn next_id(tasks: &[Task]) -> u32 {
     tasks.iter().map(|t| t.id).max().unwrap_or(0) + 1
 }
 
+/// Marks the task with `id` as done. Returns false if no task has that id.
+pub fn mark_done(tasks: &mut [Task], id: u32) -> bool {
+    match tasks.iter_mut().find(|t| t.id == id) {
+        Some(task) => {
+            task.done = true;
+            true
+        }
+        None => false,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -52,5 +63,20 @@ mod tests {
         assert_eq!(t.to_string(), "[ ]   2  write tests");
         t.done = true;
         assert!(t.to_string().starts_with("[x]"));
+    }
+
+    #[test]
+    fn mark_done_finds_the_task() {
+        let mut tasks = vec![Task::new(1, "a".into()), Task::new(2, "b".into())];
+        assert!(mark_done(&mut tasks, 2));
+        assert!(tasks[1].done);
+        assert!(!tasks[0].done);
+    }
+
+    #[test]
+    fn mark_done_unknown_id() {
+        let mut tasks = vec![Task::new(1, "a".into())];
+        assert!(!mark_done(&mut tasks, 99));
+        assert!(!tasks[0].done);
     }
 }
