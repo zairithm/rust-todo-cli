@@ -42,6 +42,12 @@ pub fn mark_done(tasks: &mut [Task], id: u32) -> bool {
     }
 }
 
+/// Removes the task with `id` and returns it. Other tasks keep their ids.
+pub fn remove(tasks: &mut Vec<Task>, id: u32) -> Option<Task> {
+    let index = tasks.iter().position(|t| t.id == id)?;
+    Some(tasks.remove(index))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -78,5 +84,25 @@ mod tests {
         let mut tasks = vec![Task::new(1, "a".into())];
         assert!(!mark_done(&mut tasks, 99));
         assert!(!tasks[0].done);
+    }
+
+    #[test]
+    fn remove_keeps_other_ids() {
+        let mut tasks = vec![
+            Task::new(1, "a".into()),
+            Task::new(2, "b".into()),
+            Task::new(3, "c".into()),
+        ];
+        let removed = remove(&mut tasks, 2).unwrap();
+        assert_eq!(removed.title, "b");
+        let ids: Vec<u32> = tasks.iter().map(|t| t.id).collect();
+        assert_eq!(ids, vec![1, 3]);
+    }
+
+    #[test]
+    fn remove_unknown_id() {
+        let mut tasks = vec![Task::new(1, "a".into())];
+        assert_eq!(remove(&mut tasks, 7), None);
+        assert_eq!(tasks.len(), 1);
     }
 }
